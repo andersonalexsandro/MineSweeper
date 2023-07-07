@@ -3,114 +3,117 @@ package br.com.andersonalexsandro.mf.model;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.Map;
+import java.util.Set;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoardTest {
-
+    int width;
+    int height;
     Board board;
     int numberOfTest;
+    EspecificsCoordinatesForTest coordinates;
 
     @BeforeEach
     void setUp() {
         numberOfTest = 10;
-        board = new Board(new Dimentions(9, 9));
+        height = 9;
+        width = 9;
+        board = new Board(new Dimentions(height, width));
+        coordinates = new EspecificsCoordinatesForTest(width, height);
     }
 
     @Test
-    void sizeEqualsDimentions(){
-        assertEquals(board.getColumns().size(), board.getDimentions().getWidth());
-        assertEquals(board.getColumns().get(0).size(), board.getDimentions().getHeight());
-
-    }
-
-    @Test
-    void generateBoard() {
-        ArrayList<ArrayList<Field>> columnsGereted = board.generateBoard();
-        for(ArrayList<Field> column: columnsGereted){
-            for (Field field: column){
-                assertEquals("fhe", fieldState(field));
+    void spwanBombTest(){
+        for(Coordinate internalCoordiante: coordinates.getInternalCoordinates()){
+            Set<Coordinate> surroundingCoordinates = board.surrounding(internalCoordiante);
+            for(Coordinate coordinate: surroundingCoordinates){
+                board.spawnMine(coordinate);
+                assertTrue(board.getField(coordinate).isMine());
             }
         }
     }
 
     @Test
-    void generateColumn() {
-        for (int i = 0; i<board.getDimentions().getHeight(); i++){
-            assertEquals("fhe", fieldState(board.generateColumn().get(i)));
+    void countBombsAroundIternalCoordinates(){
+        for(Coordinate coordinate:  coordinates.getInternalCoordinates()){
+            spwanBombsAround(coordinate);
+            int numberOfBombs = board.countBombsAround(coordinate);
+            assertEquals(8, numberOfBombs);
+        }
+    }
+
+    @Test
+    void countBombsAroundCorners(){
+        for(Coordinate coordinate: coordinates.getCorners()){
+            spwanBombsAround(coordinate);
+            int numberOfBombs = board.countBombsAround(coordinate);
+            assertEquals(5, numberOfBombs);
+        }
+    }
+
+    @Test
+    void countBombsAroundVertexs(){
+        for(Coordinate coordinate: coordinates.getVertex()){
+            spwanBombsAround(coordinate);
+            int numberOfBombs = board.countBombsAround(coordinate);
+            assertEquals(3, numberOfBombs);
+        }
+    }
+
+    public Map<Coordinate, Field> spwanBombsAround(Coordinate coordinate){
+        Set<Coordinate> surroundingCoordinates = board.surrounding(coordinate);
+        for(Coordinate coordinates: surroundingCoordinates) {
+            if(coordinates.getX()>width-1 || coordinates.getY()>height-1) continue;
+            if(coordinate.equals(coordinates)) continue;
+            board.getField(coordinates).spawnMine();
+        }
+        return board.getMap();
+    }
+
+    @Test
+    void checkFildsAroundTest(){
+        board.checkFildsAround(new Coordinate(0,0));
+        for(Map.Entry<Coordinate, Field> filds: board.getMap().entrySet()){
+            assertTrue(filds.getValue().isChecked());
+        }
+    }
+
+    @Test
+    void toStringTest(){
+        for(Map.Entry<Coordinate, Field> filds: board.getMap().entrySet()) assertEquals(GameRules.getNotCheckedIcon(), filds.getValue().toString());
+
+        board.checkFildsAround(new Coordinate(0,0));
+        for(Map.Entry<Coordinate, Field> filds: board.getMap().entrySet()) assertEquals(GameRules.getDefultIcon(), filds.getValue().toString());
+
+        spwanMineFullBoard();
+        for(Map.Entry<Coordinate, Field> filds: board.getMap().entrySet()) assertEquals(GameRules.getMineIcon(), filds.getValue().toString());
+
+    }
+
+    void spwanMineFullBoard(){
+        for(Map.Entry<Coordinate, Field> filds: board.getMap().entrySet()) board.spawnMine(filds.getValue().getCoordinate());
+    }
+
+    @Test
+    void generateBoard() {
+        Map<Coordinate, Field> columns = board.getMap();
+        for(Map.Entry<Coordinate, Field> entry : columns.entrySet()){
+            Field field = entry.getValue();
+            assertEquals("fhe", fieldState(field));
         }
     }
 
     @Test
     void generateDefoultFieldTest() {
-
-        Coordinate coordinate = new Coordinate(0,0);
-
-        for(int i=0; i<numberOfTest; i++){
-            assertEquals("fhe", fieldState(board.generateDefoultField(coordinate)));
-        }
-    }
-
-    @Test
-    void setBombTest(){
-        Coordinate[] surroundingCoordinates = surroundingCoordinates();
-
-        for(Coordinate coordinate: surroundingCoordinates){
-            board.spawnBomb(coordinate);
-            assertTrue(board.getField(coordinate).hasbomb());
-        }
-    }
-
-    @Test
-    void countBombsAround(){
-        Coordinate[] surroundingCoordinates = surroundingCoordinates(5);
-
-        for(Coordinate coordinate: surroundingCoordinates){
-            board.spawnBomb(coordinate);
+        for(Coordinate everyCoordinate:  coordinates.getAllCoordinates()){
+            for(int i=0; i<numberOfTest; i++){
+                assertEquals("fhe", fieldState(new Field(everyCoordinate)));
+            }
         }
 
-        int numberOfBOmbs= board.countBombsAroundField(board.getField(new Coordinate(5, 5)));
-
-        assertEquals(9, numberOfBOmbs);
-
-    }
-
-    public Coordinate[]surroundingCoordinates(int position){
-
-        int xFieldCoordinate = position;
-        int yFieldCoordinate = position;
-
-        Coordinate[] surroundingCoordinates = {
-                new Coordinate(xFieldCoordinate + 1, yFieldCoordinate),
-                new Coordinate(xFieldCoordinate - 1, yFieldCoordinate),
-                new Coordinate(xFieldCoordinate, yFieldCoordinate - 1),
-                new Coordinate(xFieldCoordinate, yFieldCoordinate + 1),
-                new Coordinate(xFieldCoordinate + 1, yFieldCoordinate + 1),
-                new Coordinate(xFieldCoordinate - 1, yFieldCoordinate + 1),
-                new Coordinate(xFieldCoordinate + 1, yFieldCoordinate - 1),
-                new Coordinate(xFieldCoordinate - 1, yFieldCoordinate - 1)
-        };
-        return surroundingCoordinates;
-    }
-
-    public Coordinate[]surroundingCoordinates(){
-        Random random = new Random();
-        int xFieldCoordinate = random.nextInt(board.getDimentions().getWidth());
-        int yFieldCoordinate = random.nextInt(board.getDimentions().getHeight());
-
-        Coordinate[] surroundingCoordinates = {
-                new Coordinate(xFieldCoordinate + 1, yFieldCoordinate),
-                new Coordinate(xFieldCoordinate - 1, yFieldCoordinate),
-                new Coordinate(xFieldCoordinate, yFieldCoordinate - 1),
-                new Coordinate(xFieldCoordinate, yFieldCoordinate + 1),
-                new Coordinate(xFieldCoordinate + 1, yFieldCoordinate + 1),
-                new Coordinate(xFieldCoordinate - 1, yFieldCoordinate + 1),
-                new Coordinate(xFieldCoordinate + 1, yFieldCoordinate - 1),
-                new Coordinate(xFieldCoordinate - 1, yFieldCoordinate - 1)
-        };
-        return surroundingCoordinates;
     }
 
     private String fieldState(Field field){
@@ -119,7 +122,7 @@ class BoardTest {
         if(field.isFlagged()) stringBuilder.append("F");
         else stringBuilder.append("f");
 
-        if(field.hasbomb()) stringBuilder.append("H");
+        if(field.isMine()) stringBuilder.append("H");
         else stringBuilder.append("h");
 
         if (field.isExplosed()) stringBuilder.append("E");
@@ -128,5 +131,18 @@ class BoardTest {
         return stringBuilder.toString();
     }
 
+    @Test
+    void alternateFlagFiled(){
+        for (Coordinate coordinate : coordinates.getAllCoordinates()){
+            Field field = board.getField(coordinate);
+            assertFalse(field.isFlagged());
+
+            board.alternateFlagField(coordinate);
+            assertTrue(field.isFlagged());
+
+            board.alternateFlagField(coordinate);
+            assertFalse(field.isFlagged());
+        }
+    }
 }
 
